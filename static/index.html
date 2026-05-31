@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scanner — bore.rip</title>
+  <link rel="stylesheet" href="/static/style.css?v=4">
+</head>
+<body class="scanner-body">
+  <header class="scanner-header">
+    <div>
+      <h1>Code Scanner</h1>
+      <div class="subtitle">Scan Battle.net checkout codes and build your library</div>
+    </div>
+    <div class="header-right">
+      <a href="/" class="nav-link">Browse catalog</a>
+      <div class="header-stats">
+        <div class="header-stat">
+          <span class="header-stat-label">Rate</span>
+          <span id="sessionRate" class="header-stat-value">—</span>
+        </div>
+        <div class="header-stat">
+          <span class="header-stat-label">Avg</span>
+          <span id="sessionAvgScan" class="header-stat-value">—</span>
+        </div>
+        <div class="header-stat">
+          <span class="header-stat-label">ETA</span>
+          <span id="sessionEta" class="header-stat-value">—</span>
+        </div>
+        <div class="header-stat">
+          <span class="header-stat-label">Progress</span>
+          <span id="sessionProgress" class="header-stat-value">—</span>
+        </div>
+        <div class="header-stat header-stat-wide">
+          <span class="header-stat-label">Active</span>
+          <span id="currentScanInfo" class="header-stat-value idle">Idle</span>
+        </div>
+      </div>
+      <div class="status-pill">
+        <span id="statusDot" class="status-dot"></span>
+        <span id="statusText">Loading...</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel panel-left">
+      <div class="panel-section">
+        <h2>Login</h2>
+        <p class="hint">Log in once, save session, then scan.</p>
+        <div class="btn-row">
+          <button id="openLoginBtn">Open Login</button>
+          <button id="saveLoginBtn" class="secondary">Save Session</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2>Settings</h2>
+        <div class="grid-2">
+          <div>
+            <label for="region">Region</label>
+            <select id="region">
+              <option value="us">US</option>
+              <option value="eu">EU</option>
+              <option value="kr">KR</option>
+              <option value="tw">TW</option>
+            </select>
+          </div>
+          <div>
+            <label for="delayMs">Delay (ms)</label>
+            <input id="delayMs" type="number" min="0" step="100" value="2000">
+          </div>
+          <div>
+            <label for="concurrency">Parallel</label>
+            <input id="concurrency" type="number" min="1" step="1" value="2">
+          </div>
+          <div>
+            <label for="startCode">Start</label>
+            <input id="startCode" type="number" value="64300">
+          </div>
+          <div>
+            <label for="endCode">End</label>
+            <input id="endCode" type="number" value="64400">
+          </div>
+          <div>
+            <label for="currentCode">Current</label>
+            <input id="currentCode" type="number" value="64300">
+          </div>
+        </div>
+        <div class="checkbox-row">
+          <input id="headless" type="checkbox" checked>
+          <label for="headless">Headless browser</label>
+        </div>
+        <div class="checkbox-row">
+          <input id="skipScanned" type="checkbox" checked>
+          <label for="skipScanned">Skip valid codes</label>
+        </div>
+        <div class="checkbox-row">
+          <input id="skipNoProduct" type="checkbox">
+          <label for="skipNoProduct">Skip empty codes</label>
+        </div>
+        <div class="btn-row">
+          <button id="saveSettingsBtn" class="secondary">Save</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h2>Scan</h2>
+        <div class="grid-2">
+          <div>
+            <label for="scanOneCode">Specific code</label>
+            <input id="scanOneCode" type="number" placeholder="64313">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="nextBtn">Next Code</button>
+          <button id="scanOneBtn" class="secondary">Scan One</button>
+        </div>
+        <div class="btn-row">
+          <button id="autoStartBtn" class="success">Auto Scan</button>
+          <button id="enrichIncompleteBtn" class="secondary">Fix Incomplete</button>
+          <button id="revalidateBtn" class="secondary">Recheck Failed</button>
+        </div>
+        <div class="btn-row">
+          <button id="autoPauseBtn" class="warning" disabled>Pause</button>
+          <button id="autoResumeBtn" class="success" disabled>Resume</button>
+          <button id="autoStopBtn" class="danger" disabled>Stop</button>
+        </div>
+        <div id="currentResult" class="current-result">
+          <div class="empty-state compact">No scan yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel panel-right">
+      <h2>Latest</h2>
+      <div id="recentStrip" class="recent-strip">
+        <div class="empty-state compact">No recent scans.</div>
+      </div>
+
+      <h2>Library</h2>
+      <div class="library-toolbar">
+        <input id="searchInput" type="search" placeholder="Search…">
+        <select id="sortBy">
+          <option value="code">Code</option>
+          <option value="code_desc">Code ↓</option>
+          <option value="game">Game</option>
+          <option value="name">Name</option>
+          <option value="checked">Recent</option>
+        </select>
+        <label class="checkbox-row">
+          <input id="validOnly" type="checkbox">
+          Valid only
+        </label>
+        <button id="exportBtn" class="secondary">Export</button>
+        <span id="libraryStats" class="library-stats"></span>
+      </div>
+      <div id="libraryScroll" class="library-scroll">
+        <div id="libraryVirtual" class="library-virtual">
+          <div id="libraryGrid" class="library-grid"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js?v=26"></script>
+</body>
+</html>

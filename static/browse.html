@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Search Battle.net checkout product codes — names, prices, games, and images.">
+  <title>bore.rip — Battle.net Code Library</title>
+  <link rel="stylesheet" href="/static/style.css?v=4">
+</head>
+<body class="browse-body">
+  <header class="site-header">
+    <div class="site-brand">
+      <a class="brand-link" href="/">bore.rip</a>
+      <span class="brand-tag">Battle.net catalog</span>
+    </div>
+    <nav class="site-nav">
+      <a href="/scanner" class="nav-link">Scanner</a>
+    </nav>
+  </header>
+
+  <main class="browse-main">
+    <section class="browse-hero">
+      <h1>Find Battle.net products by code</h1>
+      <p class="browse-lead">Search a community index of checkout codes — games, bundles, coins, and more.</p>
+      <div class="search-bar">
+        <input id="searchInput" type="search" placeholder="Search by name, code, or game…" autocomplete="off">
+        <select id="sortBy" aria-label="Sort results">
+          <option value="name">Name A–Z</option>
+          <option value="checked">Recently added</option>
+          <option value="game">Game</option>
+          <option value="code">Code</option>
+        </select>
+      </div>
+      <div id="statsRow" class="stats-row">Loading catalog…</div>
+      <div id="gameFilters" class="game-filters"></div>
+    </section>
+
+    <section id="resultsSection" class="results-section">
+      <div id="productGrid" class="product-grid"></div>
+      <div id="loadMoreSentinel" class="load-more-sentinel"></div>
+      <div id="emptyState" class="empty-state browse-empty hidden">No products match your search.</div>
+      <div id="loadingState" class="loading-state hidden">Loading…</div>
+    </section>
+  </main>
+
+  <dialog id="productModal" class="product-modal">
+    <div class="modal-inner">
+      <button type="button" class="modal-close" id="modalClose" aria-label="Close">×</button>
+      <div id="modalContent"></div>
+    </div>
+  </dialog>
+
+  <footer class="site-footer">
+    <p>Unofficial community catalog. Not affiliated with Blizzard Entertainment.</p>
+    <p><a href="/scanner">Run the scanner</a> · <a href="https://github.com" target="_blank" rel="noopener">View source</a></p>
+  </footer>
+
+  <script src="/static/browse.js?v=1"></script>
+</body>
+</html>
