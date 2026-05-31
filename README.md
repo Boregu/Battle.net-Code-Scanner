@@ -72,7 +72,7 @@ git init
 git add .
 git commit -m "Initial public release"
 git branch -M main
-git remote add origin https://github.com/YOUR_USER/battlenet-code-library.git
+git remote add origin https://github.com/Boregu/Battle.net-Code-Scanner.git
 git push -u origin main
 ```
 
