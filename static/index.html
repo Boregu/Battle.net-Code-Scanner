@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Scanner — bore.rip</title>
-  <link rel="stylesheet" href="/static/style.css?v=4">
+  <script>
+(function(){const p=["/battlenetcodes"];let b="/";for(const x of p){if(location.pathname===x||location.pathname.startsWith(x+"/")){b=x+"/";break}}window.BASE_PATH=b==="/"?"":b.slice(0,-1);window.apiUrl=function(u){return`${window.BASE_PATH}${u.startsWith("/")?u:"/"+u}`};window.assetUrl=function(u){if(!u)return null;if(/^https?:\/\//i.test(u))return u;const n=u.startsWith("/")?u:"/"+u;return`${window.BASE_PATH}${n}`};const e=document.createElement("base");e.href=b;document.head.appendChild(e)})();
+  </script>
+  <link rel="stylesheet" href="static/style.css?v=5">
 </head>
 <body class="scanner-body">
   <header class="scanner-header">
@@ -13,7 +16,7 @@
       <div class="subtitle">Scan Battle.net checkout codes and build your library</div>
     </div>
     <div class="header-right">
-      <a href="/" class="nav-link">Browse catalog</a>
+      <a href="./" class="nav-link">Browse catalog</a>
       <div class="header-stats">
         <div class="header-stat">
           <span class="header-stat-label">Rate</span>
@@ -163,6 +166,6 @@
     </section>
   </main>
 
-  <script src="/static/app.js?v=26"></script>
+  <script src="static/app.js?v=27"></script>
 </body>
 </html>

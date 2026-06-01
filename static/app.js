@@ -327,7 +327,7 @@ setInterval(updateSessionDisplay, 1000);
 
 function imageUrl(item) {
   if (!item?.image_path && !item?.image_url) return null;
-  if (item.image_path) return `/${item.image_path.replace(/\\/g, "/")}`;
+  if (item.image_path) return assetUrl(item.image_path.replace(/\\/g, "/"));
   return item.image_url;
 }
 
@@ -348,7 +348,7 @@ function formatApiError(data, statusText) {
 }
 
 async function api(path, options = {}) {
-  const res = await fetch(path, {
+  const res = await fetch(apiUrl(path), {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
@@ -747,7 +747,7 @@ async function saveSettings() {
 
 function connectWebSocket() {
   const protocol = location.protocol === "https:" ? "wss" : "ws";
-  ws = new WebSocket(`${protocol}://${location.host}/ws`);
+  ws = new WebSocket(`${protocol}://${location.host}${apiUrl("/ws")}`);
 
   ws.onmessage = (event) => {
     const { event: name, payload } = JSON.parse(event.data);

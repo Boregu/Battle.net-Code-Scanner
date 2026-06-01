@@ -32,6 +32,17 @@ Open:
 
 Auto scans now try to pull images, prices, and game tags from checkout HTML over HTTP. Coin products (e.g. Overwatch Coins) and CP bundles are detected when present in the page.
 
+## bore.rip project hub
+
+This app is designed to live at **`bore.rip/battlenetcodes`** while your portfolio stays on Vercel.
+
+| URL | Host |
+|-----|------|
+| `bore.rip/` | Vercel — portfolio (`Boregu/bore.rip`) |
+| `bore.rip/battlenetcodes` | Railway — this catalog (proxied via Vercel) |
+
+See **[deploy/HUB.md](deploy/HUB.md)** for full setup. Copy `deploy/bore.rip-vercel.json` into your bore.rip repo as `vercel.json`.
+
 ## Hosting at bore.rip
 
 GitHub Pages **cannot** run this app (it needs Python + Playwright). Use a small VPS or PaaS with Docker.

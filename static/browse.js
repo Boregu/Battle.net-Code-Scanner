@@ -32,7 +32,7 @@ const GAME_COLORS = {
 };
 
 function imageUrl(item) {
-  if (item?.image_path) return `/${item.image_path.replace(/\\/g, "/")}`;
+  if (item?.image_path) return assetUrl(item.image_path.replace(/\\/g, "/"));
   if (item?.image_url) return item.image_url;
   return null;
 }
@@ -114,7 +114,7 @@ function modalHtml(item) {
 }
 
 async function fetchJson(path) {
-  const res = await fetch(path);
+  const res = await fetch(apiUrl(path));
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
   return res.json();
 }

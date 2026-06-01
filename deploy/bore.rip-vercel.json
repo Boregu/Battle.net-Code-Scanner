@@ -1,0 +1,13 @@
+{
+  "$comment": "Copy this to vercel.json in your bore.rip portfolio repo. Replace RAILWAY_URL with your Railway app hostname.",
+  "rewrites": [
+    {
+      "source": "/battlenetcodes",
+      "destination": "https://RAILWAY_URL.up.railway.app/"
+    },
+    {
+      "source": "/battlenetcodes/:path*",
+      "destination": "https://RAILWAY_URL.up.railway.app/:path*"
+    }
+  ]
+}

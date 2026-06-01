@@ -121,6 +121,11 @@ async def shutdown_event() -> None:
     await scanner.close()
 
 
+@app.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 @app.get("/")
 async def browse_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "browse.html")
