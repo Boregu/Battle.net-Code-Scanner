@@ -142,6 +142,8 @@ def _classify_overwatch_coin_cosmetic(name: str, price: str | None, ctx: str) ->
     lower = name.lower()
     if re.search(r"\bvoice line\b", ctx):
         return "voice_line"
+    if name.strip().startswith("..."):
+        return "voice_line"
     if re.search(r"\bspray\b", lower) or re.search(r"\bspray\b", ctx):
         return "spray"
     if re.search(r"\bemote\b", lower) or re.search(r"\b(emote|highlight intro|victory pose)\b", ctx):
@@ -150,6 +152,8 @@ def _classify_overwatch_coin_cosmetic(name: str, price: str | None, ctx: str) ->
         return "spray"
     amount = parse_coin_amount(price)
     if amount is not None:
+        if amount <= 25:
+            return "spray"
         if amount <= 75:
             return "voice_line"
         if amount <= 250:
