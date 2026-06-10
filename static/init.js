@@ -1,5 +1,6 @@
 (function () {
   const MOUNT_PREFIXES = ["/battlenetcodes"];
+  const PAGE_FADE_MS = 450;
 
   let baseHref = "/";
   for (const prefix of MOUNT_PREFIXES) {
@@ -24,4 +25,61 @@
   const base = document.createElement("base");
   base.href = baseHref;
   document.head.appendChild(base);
+
+  const embedQuery = new URLSearchParams(location.search);
+  const isEmbed =
+    embedQuery.get("embed") === "1" || window.self !== window.top;
+  if (isEmbed) {
+    document.documentElement.classList.add("scanner-embed-mode");
+  }
+
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+  const transitionsEnabled = !isEmbed && !prefersReducedMotion;
+
+  function leavePage(url) {
+    const body = document.body;
+    if (!body || !transitionsEnabled) {
+      location.href = url;
+      return;
+    }
+    body.classList.add("page-leaving");
+    window.setTimeout(() => {
+      location.href = url;
+    }, PAGE_FADE_MS);
+  }
+
+  function shouldFadeNavigate(link, event) {
+    if (!transitionsEnabled) return false;
+    if (event.defaultPrevented) return false;
+    if (event.button !== 0) return false;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
+    if (link.target && link.target !== "_self") return false;
+    if (link.hasAttribute("download")) return false;
+
+    const href = link.getAttribute("href");
+    if (!href || href.startsWith("#") || href.startsWith("javascript:")) {
+      return false;
+    }
+
+    const url = new URL(link.href, location.href);
+    if (url.origin !== location.origin) return false;
+
+    return true;
+  }
+
+  function onDocumentClick(event) {
+    const link = event.target.closest("a[href]");
+    if (!link || !shouldFadeNavigate(link, event)) return;
+    event.preventDefault();
+    leavePage(link.href);
+  }
+
+  window.addEventListener("pageshow", (event) => {
+    if (!event.persisted) return;
+    document.body?.classList.remove("page-leaving");
+  });
+
+  document.addEventListener("click", onDocumentClick);
 })();

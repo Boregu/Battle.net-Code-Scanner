@@ -65,27 +65,43 @@ function cardHtml(item) {
   const img = imageUrl(item);
   const price = displayPrice(item);
   const game = item.game || "Unknown game";
-  const accent = GAME_COLORS[game] || "#5b8def";
 
   return `
     <article class="product-card" data-code="${item.code}" tabindex="0">
       <div class="product-thumb">
         ${
           img
-            ? `<img src="${escapeHtml(img)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'thumb-fallback'}))">`
+            ? `<div class="thumb-shimmer" aria-hidden></div><img src="${escapeHtml(img)}" alt="" loading="lazy" class="is-loading" onload="this.classList.remove('is-loading');this.previousElementSibling?.remove()" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'thumb-fallback'}))">`
             : `<div class="thumb-fallback"><span>${escapeHtml(game.split(" ")[0])}</span></div>`
         }
       </div>
       <div class="product-body">
         <div class="product-meta">
           <span class="product-code">#${item.code}</span>
-          <span class="product-game" style="--game-accent:${accent}">${escapeHtml(game)}</span>
+          <span class="product-game-label">${escapeHtml(game)}</span>
         </div>
         <h2 class="product-name">${escapeHtml(item.name || "Unnamed product")}</h2>
         <div class="product-price">${price ? escapeHtml(price) : '<span class="muted">Price unavailable</span>'}</div>
       </div>
     </article>
   `;
+}
+
+function staggerCards(startIndex = 0) {
+  const cards = els.productGrid.querySelectorAll(".product-card:not(.card-enter)");
+  cards.forEach((card, i) => {
+    card.classList.add("card-enter");
+    card.style.setProperty("--stagger", String(startIndex + i));
+  });
+}
+
+function closeModal() {
+  if (!els.productModal.open) return;
+  els.productModal.classList.add("is-closing");
+  window.setTimeout(() => {
+    els.productModal.close();
+    els.productModal.classList.remove("is-closing");
+  }, 180);
 }
 
 function modalHtml(item) {
@@ -169,13 +185,19 @@ async function loadMore() {
   loading = true;
   els.loadingState.classList.remove("hidden");
 
+  const prevCount = offset;
+
   try {
     const data = await fetchJson(`/api/public/library?${buildQuery()}`);
     total = data.total ?? total;
     const items = data.items || [];
 
     if (offset === 0) {
+      els.productGrid.classList.add("is-refreshing");
       els.productGrid.innerHTML = "";
+      requestAnimationFrame(() => {
+        els.productGrid.classList.remove("is-refreshing");
+      });
     }
 
     if (!items.length && offset === 0) {
@@ -183,6 +205,7 @@ async function loadMore() {
     } else {
       els.emptyState.classList.add("hidden");
       els.productGrid.insertAdjacentHTML("beforeend", items.map(cardHtml).join(""));
+      staggerCards(prevCount);
     }
 
     offset += items.length;
@@ -257,9 +280,13 @@ els.productGrid.addEventListener("keydown", (event) => {
   openModal(Number(card.dataset.code));
 });
 
-els.modalClose.addEventListener("click", () => els.productModal.close());
+els.modalClose.addEventListener("click", closeModal);
 els.productModal.addEventListener("click", (event) => {
-  if (event.target === els.productModal) els.productModal.close();
+  if (event.target === els.productModal) closeModal();
+});
+els.productModal.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeModal();
 });
 
 loadStats();

@@ -3,20 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scanner — bore.rip</title>
-  <script>
-(function(){const p=["/battlenetcodes"];let b="/";for(const x of p){if(location.pathname===x||location.pathname.startsWith(x+"/")){b=x+"/";break}}window.BASE_PATH=b==="/"?"":b.slice(0,-1);window.apiUrl=function(u){return`${window.BASE_PATH}${u.startsWith("/")?u:"/"+u}`};window.assetUrl=function(u){if(!u)return null;if(/^https?:\/\//i.test(u))return u;const n=u.startsWith("/")?u:"/"+u;return`${window.BASE_PATH}${n}`};const e=document.createElement("base");e.href=b;document.head.appendChild(e)})();
-  </script>
-  <link rel="stylesheet" href="static/style.css?v=5">
+  <title>Scanner — Battle.net Code Library</title>
+  <link rel="stylesheet" href="static/style.css?v=24">
+  <script src="static/init.js?v=24"></script>
 </head>
 <body class="scanner-body">
   <header class="scanner-header">
     <div>
-      <h1>Code Scanner</h1>
-      <div class="subtitle">Scan Battle.net checkout codes and build your library</div>
+      <h1>Battle.net Code Library</h1>
+      <div class="subtitle">Scan checkout codes and build your catalog</div>
     </div>
     <div class="header-right">
-      <a href="./" class="nav-link">Browse catalog</a>
+      <a href="." class="nav-link scanner-nav-browse">Browse</a>
+      <a href="./scanner" class="nav-link nav-link-active scanner-nav-scanner">Scanner</a>
       <div class="header-stats">
         <div class="header-stat">
           <span class="header-stat-label">Rate</span>
@@ -48,91 +47,167 @@
 
   <main class="layout">
     <section class="panel panel-left">
-      <div class="panel-section">
-        <h2>Login</h2>
-        <p class="hint">Log in once, save session, then scan.</p>
-        <div class="btn-row">
-          <button id="openLoginBtn">Open Login</button>
-          <button id="saveLoginBtn" class="secondary">Save Session</button>
+      <details class="sidebar-drawer" open>
+        <summary>Scan</summary>
+        <div class="drawer-body">
+          <p class="hint scan-hint">Runs <strong>Current</strong> → <strong>End</strong>. Fix mode uses your installed Chrome (like opening checkout manually), up to ~2 min per code.</p>
+          <div id="staleServerBanner" class="stale-server-banner hidden">
+            Scanner server is outdated — stop your scan and restart <strong>run.bat</strong>, then hard-refresh (Ctrl+F5).
+          </div>
+          <button id="smartScanBtn" class="success scan-primary">Scan</button>
+          <div class="btn-row">
+            <button id="fixProblemsBtn" class="secondary scan-secondary">Fix Failed &amp; Incomplete</button>
+            <button id="fixThrottledBtn" class="secondary scan-secondary">Fix Throttled</button>
+          </div>
+          <div class="grid-2 scan-advanced-grid">
+            <div>
+              <label for="scanOneCode">Specific code</label>
+              <input id="scanOneCode" type="number" placeholder="64313">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button id="nextBtn">Next Code</button>
+            <button id="scanOneBtn" class="secondary">Scan One</button>
+          </div>
+          <details class="scan-advanced">
+            <summary>Advanced scan options</summary>
+            <p class="hint">Skip options live in Settings above.</p>
+            <div class="btn-row">
+              <button id="autoStartBtn" class="secondary">Auto Scan</button>
+              <button id="enrichIncompleteBtn" class="secondary">Fix Incomplete</button>
+              <button id="revalidateBtn" class="secondary">Recheck Failed</button>
+            </div>
+          </details>
+          <div class="btn-row scan-controls">
+            <button id="autoPauseBtn" class="warning" disabled>Pause</button>
+            <button id="autoResumeBtn" class="success" disabled>Resume</button>
+            <button id="autoStopBtn" class="danger" disabled>Stop</button>
+          </div>
+          <div id="currentResult" class="current-result">
+            <div class="empty-state compact">No scan yet.</div>
+          </div>
+          <div class="activity-log-panel">
+            <div class="activity-log-head">
+              <span>Activity log</span>
+              <span id="activityLogStatus" class="activity-log-status">Idle</span>
+            </div>
+            <pre id="activityLog" class="activity-log">Waiting for scan activity…</pre>
+          </div>
+          <details class="scan-debug" id="debugPanel">
+            <summary>Extract script status <span id="debugBadge" class="debug-badge hidden"></span></summary>
+            <pre id="debugLog" class="debug-log">(no entries yet)</pre>
+          </details>
         </div>
-      </div>
+      </details>
 
-      <div class="panel-section">
-        <h2>Settings</h2>
-        <div class="grid-2">
-          <div>
-            <label for="region">Region</label>
-            <select id="region">
-              <option value="us">US</option>
-              <option value="eu">EU</option>
-              <option value="kr">KR</option>
-              <option value="tw">TW</option>
-            </select>
+      <details class="sidebar-drawer">
+        <summary>Settings</summary>
+        <div class="drawer-body">
+          <div class="grid-2">
+            <div>
+              <label for="region">Region</label>
+              <select id="region">
+                <option value="us">US</option>
+                <option value="eu">EU</option>
+                <option value="kr">KR</option>
+                <option value="tw">TW</option>
+              </select>
+            </div>
+            <div>
+              <label for="delayMs">Delay (ms)</label>
+              <input id="delayMs" type="number" min="0" step="100" value="2000">
+            </div>
+            <div>
+              <label for="concurrency">Parallel</label>
+              <input id="concurrency" type="number" min="1" step="1" value="2">
+            </div>
+            <div>
+              <label for="startCode">Start</label>
+              <input id="startCode" type="number" value="0">
+            </div>
+            <div>
+              <label for="endCode">End</label>
+              <input id="endCode" type="number" value="1000000">
+            </div>
+            <div>
+              <label for="currentCode">Current</label>
+              <input id="currentCode" type="number" value="0">
+            </div>
           </div>
-          <div>
-            <label for="delayMs">Delay (ms)</label>
-            <input id="delayMs" type="number" min="0" step="100" value="2000">
+          <div class="checkbox-row">
+            <input id="headless" type="checkbox" checked>
+            <label for="headless">Headless browser</label>
           </div>
-          <div>
-            <label for="concurrency">Parallel</label>
-            <input id="concurrency" type="number" min="1" step="1" value="2">
+          <div class="checkbox-row">
+            <input id="skipScanned" type="checkbox" checked>
+            <label for="skipScanned">Skip valid codes</label>
           </div>
-          <div>
-            <label for="startCode">Start</label>
-            <input id="startCode" type="number" value="64300">
+          <div class="checkbox-row">
+            <input id="skipNoProduct" type="checkbox">
+            <label for="skipNoProduct">Skip empty codes</label>
           </div>
-          <div>
-            <label for="endCode">End</label>
-            <input id="endCode" type="number" value="64400">
-          </div>
-          <div>
-            <label for="currentCode">Current</label>
-            <input id="currentCode" type="number" value="64300">
+          <div class="btn-row">
+            <button id="saveSettingsBtn" class="secondary">Save settings</button>
           </div>
         </div>
-        <div class="checkbox-row">
-          <input id="headless" type="checkbox" checked>
-          <label for="headless">Headless browser</label>
-        </div>
-        <div class="checkbox-row">
-          <input id="skipScanned" type="checkbox" checked>
-          <label for="skipScanned">Skip valid codes</label>
-        </div>
-        <div class="checkbox-row">
-          <input id="skipNoProduct" type="checkbox">
-          <label for="skipNoProduct">Skip empty codes</label>
-        </div>
-        <div class="btn-row">
-          <button id="saveSettingsBtn" class="secondary">Save</button>
-        </div>
-      </div>
+      </details>
 
-      <div class="panel-section">
-        <h2>Scan</h2>
-        <div class="grid-2">
-          <div>
-            <label for="scanOneCode">Specific code</label>
-            <input id="scanOneCode" type="number" placeholder="64313">
+      <details class="sidebar-drawer">
+        <summary>Database</summary>
+        <div class="drawer-body">
+          <div class="db-card">
+            <div class="db-stats" id="databaseStatsGrid">
+              <div class="db-stat">
+                <span class="db-stat-label">Active</span>
+                <span id="dbActiveName" class="db-stat-value">—</span>
+              </div>
+              <div class="db-stat">
+                <span class="db-stat-label">Valid</span>
+                <span id="dbValidCount" class="db-stat-value">—</span>
+              </div>
+              <div class="db-stat">
+                <span class="db-stat-label">Scanned</span>
+                <span id="dbRowCount" class="db-stat-value">—</span>
+              </div>
+              <div class="db-stat">
+                <span class="db-stat-label">Problems</span>
+                <span id="dbProblemCount" class="db-stat-value">—</span>
+              </div>
+            </div>
+            <p class="hint db-problems-hint">
+              Failed &amp; incomplete (fixable) export to
+              <code id="problemsJsonPath">data/databases/library-problems.json</code>
+              · Not eligible codes are tagged separately and skipped by Fix
+            </p>
+            <div class="btn-row db-actions-top">
+              <button id="refreshProblemsBtn" class="secondary" type="button">Refresh problems JSON</button>
+            </div>
+            <label for="databaseSelect">Switch library</label>
+            <select id="databaseSelect"></select>
+            <label for="databaseBackupSelect">Restore from backup</label>
+            <select id="databaseBackupSelect"></select>
+            <label for="databaseNewName">New database name</label>
+            <input id="databaseNewName" type="text" placeholder="experiments">
+            <div class="btn-row">
+              <button id="databaseSwitchBtn" class="secondary" type="button">Switch</button>
+              <button id="databaseCreateBtn" class="secondary" type="button">Create &amp; switch</button>
+              <button id="databaseRestoreBtn" type="button">Restore backup</button>
+            </div>
+          </div>
+          <p class="hint" id="databaseSummary"></p>
+        </div>
+      </details>
+
+      <details class="sidebar-drawer">
+        <summary>Login</summary>
+        <div class="drawer-body">
+          <p class="hint">Opens your installed Chrome (or Edge). Log in with email/password — Google sign-in is often blocked in automated browsers.</p>
+          <div class="btn-row">
+            <button id="openLoginBtn">Open Login</button>
+            <button id="saveLoginBtn" class="secondary">Save Session</button>
           </div>
         </div>
-        <div class="btn-row">
-          <button id="nextBtn">Next Code</button>
-          <button id="scanOneBtn" class="secondary">Scan One</button>
-        </div>
-        <div class="btn-row">
-          <button id="autoStartBtn" class="success">Auto Scan</button>
-          <button id="enrichIncompleteBtn" class="secondary">Fix Incomplete</button>
-          <button id="revalidateBtn" class="secondary">Recheck Failed</button>
-        </div>
-        <div class="btn-row">
-          <button id="autoPauseBtn" class="warning" disabled>Pause</button>
-          <button id="autoResumeBtn" class="success" disabled>Resume</button>
-          <button id="autoStopBtn" class="danger" disabled>Stop</button>
-        </div>
-        <div id="currentResult" class="current-result">
-          <div class="empty-state compact">No scan yet.</div>
-        </div>
-      </div>
+      </details>
     </section>
 
     <section class="panel panel-right">
@@ -152,11 +227,36 @@
           <option value="checked">Recent</option>
         </select>
         <label class="checkbox-row">
-          <input id="validOnly" type="checkbox">
-          Valid only
+          <input id="validOnly" type="checkbox" checked>
+          Valid
         </label>
+        <label class="checkbox-row">
+          <input id="failedOnly" type="checkbox">
+          Failed
+        </label>
+        <label class="checkbox-row">
+          <input id="incompleteOnly" type="checkbox">
+          Incomplete
+        </label>
+        <label class="checkbox-row">
+          <input id="notEligibleOnly" type="checkbox">
+          Not eligible
+        </label>
+        <button id="refreshLibraryBtn" class="secondary library-refresh-btn" type="button" title="Reload library">Refresh</button>
         <button id="exportBtn" class="secondary">Export</button>
         <span id="libraryStats" class="library-stats"></span>
+      </div>
+      <div class="library-toolbar library-toolbar-delete">
+        <span class="library-toolbar-label">Delete range</span>
+        <label class="library-inline-field">
+          <span class="library-inline-label">From</span>
+          <input id="deleteFromCode" type="number" min="0" placeholder="Start code">
+        </label>
+        <label class="library-inline-field">
+          <span class="library-inline-label">To</span>
+          <input id="deleteToCode" type="number" min="0" placeholder="End code">
+        </label>
+        <button id="deleteRangeBtn" class="danger" type="button">Delete range</button>
       </div>
       <div id="libraryScroll" class="library-scroll">
         <div id="libraryVirtual" class="library-virtual">
@@ -166,6 +266,16 @@
     </section>
   </main>
 
-  <script src="static/app.js?v=27"></script>
+  <dialog id="debugDialog" class="debug-dialog">
+    <div class="debug-dialog-inner">
+      <div class="debug-dialog-head">
+        <h3 id="debugDialogTitle">Why?</h3>
+        <button type="button" id="debugDialogClose" class="secondary">Close</button>
+      </div>
+      <div id="debugDialogBody" class="debug-dialog-body"></div>
+    </div>
+  </dialog>
+
+  <script src="static/app.js?v=62"></script>
 </body>
 </html>

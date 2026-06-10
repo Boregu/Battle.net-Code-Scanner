@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Search Battle.net checkout product codes — names, prices, games, and images.">
   <title>bore.rip — Battle.net Code Library</title>
-  <script>
-(function(){const p=["/battlenetcodes"];let b="/";for(const x of p){if(location.pathname===x||location.pathname.startsWith(x+"/")){b=x+"/";break}}window.BASE_PATH=b==="/"?"":b.slice(0,-1);window.apiUrl=function(u){return`${window.BASE_PATH}${u.startsWith("/")?u:"/"+u}`};window.assetUrl=function(u){if(!u)return null;if(/^https?:\/\//i.test(u))return u;const n=u.startsWith("/")?u:"/"+u;return`${window.BASE_PATH}${n}`};const e=document.createElement("base");e.href=b;document.head.appendChild(e)})();
-  </script>
-  <link rel="stylesheet" href="static/style.css?v=5">
+  <link rel="stylesheet" href="static/style.css?v=23">
+  <script src="static/init.js?v=23"></script>
 </head>
 <body class="browse-body">
   <header class="site-header">
@@ -58,6 +56,6 @@
     <p><a href="scanner">Run the scanner</a> · <a href="https://github.com/Boregu/Battle.net-Code-Scanner" target="_blank" rel="noopener">View source</a></p>
   </footer>
 
-  <script src="static/browse.js?v=2"></script>
+  <script src="static/browse.js?v=3"></script>
 </body>
 </html>
