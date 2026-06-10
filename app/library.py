@@ -769,6 +769,40 @@ def backfill_auto_catalog_tags(*, game: str = "") -> int:
     return updated
 
 
+def reapply_auto_catalog_tags(*, game: str = "") -> int:
+    """Re-detect catalog tags for tagged OW/SC2 products (fixes stale emote_spray rows)."""
+    from app.catalog_tags import detect_catalog_tags, write_catalog_tags
+
+    conn = get_connection()
+    clauses = ["valid = 1", "game IN ('Overwatch', 'StarCraft II')"]
+    params: list[Any] = []
+    if game:
+        clauses.append("game = ?")
+        params.append(game)
+    rows = conn.execute(
+        f"SELECT * FROM products WHERE {' AND '.join(clauses)} ORDER BY code ASC",
+        params,
+    ).fetchall()
+    updated = 0
+    for row in rows:
+        data = dict(row)
+        tags = detect_catalog_tags(data)
+        if not tags:
+            continue
+        new_notes = write_catalog_tags(data.get("raw_notes"), tags)
+        if new_notes != data.get("raw_notes"):
+            conn.execute(
+                "UPDATE products SET raw_notes = ? WHERE code = ?",
+                (new_notes, data["code"]),
+            )
+            updated += 1
+    conn.commit()
+    conn.close()
+    invalidate_stats_cache()
+    invalidate_tag_queue_cache()
+    return updated
+
+
 def explain_product(row: dict[str, Any], *, log_entries: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     notes = (row.get("raw_notes") or "").strip()
     notes_lower = notes.lower()
@@ -1839,6 +1873,7 @@ def build_catalog_payload() -> dict[str, Any]:
 
 def publish_catalog_snapshots(extra_paths: list[Path] | None = None) -> list[tuple[Path, int]]:
     backfill_auto_catalog_tags()
+    reapply_auto_catalog_tags()
     payload = build_catalog_payload()
     text = json.dumps(payload, indent=2)
     count = int(payload["valid_count"])

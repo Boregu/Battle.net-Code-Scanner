@@ -12,7 +12,9 @@ TAG_LABELS: dict[str, str] = {
     "coin_pack": "Coin pack",
     "hero_skin": "Hero skin",
     "bundle": "Bundle",
-    "emote_spray": "Emote / spray",
+    "emote": "Emote",
+    "spray": "Spray",
+    "voice_line": "Voice line",
     "hero_offer": "Hero offer",
     "real_money": "Real money",
     "commander": "Commander",
@@ -25,7 +27,9 @@ TAG_LABELS: dict[str, str] = {
 OVERWATCH_TAG_OPTIONS = [
     "hero_skin",
     "bundle",
-    "emote_spray",
+    "emote",
+    "spray",
+    "voice_line",
     "hero_offer",
     "coin_pack",
     "real_money",
@@ -45,7 +49,9 @@ STARCRAFT_TAG_OPTIONS = [
 OVERWATCH_FILTER_TO_TAGS: dict[str, list[str]] = {
     "hero_skins": ["hero_skin"],
     "bundles": ["bundle"],
-    "emotes_sprays": ["emote_spray"],
+    "emotes": ["emote"],
+    "sprays": ["spray"],
+    "voice_lines": ["voice_line"],
     "hero_offers": ["hero_offer"],
     "coins": ["coin_pack"],
     "real_money": ["real_money"],
@@ -132,6 +138,28 @@ def _item_context(item: dict[str, Any]) -> str:
     return re.sub(r"\s+", " ", " ".join(parts)).lower()
 
 
+def _classify_overwatch_coin_cosmetic(name: str, price: str | None, ctx: str) -> str:
+    lower = name.lower()
+    if re.search(r"\bvoice line\b", ctx):
+        return "voice_line"
+    if re.search(r"\bspray\b", lower) or re.search(r"\bspray\b", ctx):
+        return "spray"
+    if re.search(r"\bemote\b", lower) or re.search(r"\b(emote|highlight intro|victory pose)\b", ctx):
+        return "emote"
+    if re.search(r"\b(player icon|name card|charm|weapon charm)\b", lower + " " + ctx):
+        return "spray"
+    amount = parse_coin_amount(price)
+    if amount is not None:
+        if amount <= 75:
+            return "voice_line"
+        if amount <= 250:
+            return "spray"
+        if amount <= 600:
+            return "emote"
+        return "hero_skin"
+    return "other"
+
+
 def detect_catalog_tags(item: dict[str, Any]) -> list[str]:
     name = (item.get("name") or "").strip()
     game = (item.get("game") or "").strip()
@@ -149,21 +177,12 @@ def detect_catalog_tags(item: dict[str, Any]) -> list[str]:
             tags.append("bundle")
         elif re.search(r"legendary offer|mythic weapon|hero offer", lower + " " + ctx):
             tags.append("hero_offer")
-        elif re.search(
-            r"\b(spray|emote|highlight intro|player icon|name card|charm|voice line|victory pose|weapon charm)\b",
-            lower + " " + ctx,
-        ):
-            tags.append("emote_spray")
-        elif re.search(r"\b(hero skin|skin for|weapon skin|cosmetic)\b", ctx):
+        elif re.search(r"\b(hero skin|skin for|weapon skin)\b", ctx):
             tags.append("hero_skin")
         elif " - " in name and is_overwatch_coin_price(price):
             tags.append("hero_skin")
         elif is_overwatch_coin_price(price):
-            amount = parse_coin_amount(price)
-            if amount is not None and amount <= 600:
-                tags.append("emote_spray")
-            else:
-                tags.append("hero_skin")
+            tags.append(_classify_overwatch_coin_cosmetic(name, price, ctx))
         elif re.search(r"battle pass|edition|upgrade|watchpoint", lower + " " + ctx):
             tags.append("other")
         else:
@@ -343,11 +362,17 @@ def get_product_includes(name: str, game: str | None, tags: list[str] | None = N
             return f"Includes the {n} cosmetic for StarCraft II."
         return f"Includes the {n} cosmetic for StarCraft II."
 
+    if "voice_line" in tag_set:
+        return f"Includes the {n} voice line for Overwatch."
+
+    if "emote" in tag_set:
+        return f"Includes the {n} emote for Overwatch."
+
+    if "spray" in tag_set:
+        return f"Includes the {n} spray for Overwatch."
+
     if "hero_skin" in tag_set:
         return f"Includes the {n} cosmetic for Overwatch."
-
-    if "emote_spray" in tag_set:
-        return f"Includes the {n} emote, spray, or cosmetic for Overwatch."
 
     if "hero_offer" in tag_set:
         return f"Includes the {n} hero offer for Overwatch."
