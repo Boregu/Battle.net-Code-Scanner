@@ -712,7 +712,7 @@ def count_tag_queue(*, game: str = "", use_cache: bool = True) -> int:
 
 def _tag_queue_rows(*, game: str = "") -> list[dict[str, Any]]:
     conn = get_connection()
-    clauses = ["valid = 1", "game IN ('Overwatch', 'StarCraft II')"]
+    clauses = ["valid = 1"]
     params: list[Any] = []
     if game:
         clauses.append("game = ?")
@@ -741,7 +741,7 @@ def get_tag_queue_codes(
 
 def backfill_auto_catalog_tags(*, game: str = "") -> int:
     conn = get_connection()
-    clauses = ["valid = 1", "game IN ('Overwatch', 'StarCraft II')"]
+    clauses = ["valid = 1"]
     params: list[Any] = []
     if game:
         clauses.append("game = ?")
@@ -774,7 +774,7 @@ def reapply_auto_catalog_tags(*, game: str = "") -> int:
     from app.catalog_tags import detect_catalog_tags, write_catalog_tags
 
     conn = get_connection()
-    clauses = ["valid = 1", "game IN ('Overwatch', 'StarCraft II')"]
+    clauses = ["valid = 1"]
     params: list[Any] = []
     if game:
         clauses.append("game = ?")

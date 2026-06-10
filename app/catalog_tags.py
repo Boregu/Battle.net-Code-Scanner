@@ -21,6 +21,13 @@ TAG_LABELS: dict[str, str] = {
     "war_chest": "War chest",
     "campaign": "Campaign",
     "sc2_cosmetic": "Cosmetic",
+    "card_pack": "Card pack",
+    "cod_points": "COD Points",
+    "platinum": "Platinum",
+    "game_time": "Game time",
+    "wow_token": "WoW Token",
+    "mount_pet": "Mount / pet",
+    "edition": "Edition",
     "other": "Other",
 }
 
@@ -67,6 +74,56 @@ STARCRAFT_FILTER_TO_TAGS: dict[str, list[str]] = {
     "real_money": ["real_money"],
     "other": ["other"],
 }
+
+HEARTHSTONE_FILTER_TO_TAGS: dict[str, list[str]] = {
+    "card_packs": ["card_pack"],
+    "real_money": ["real_money"],
+    "other": ["other"],
+}
+
+CALL_OF_DUTY_FILTER_TO_TAGS: dict[str, list[str]] = {
+    "cod_points": ["cod_points"],
+    "editions": ["edition"],
+    "real_money": ["real_money"],
+    "other": ["other"],
+}
+
+WOW_FILTER_TO_TAGS: dict[str, list[str]] = {
+    "game_time": ["game_time"],
+    "wow_tokens": ["wow_token"],
+    "mount_pets": ["mount_pet"],
+    "editions": ["edition"],
+    "real_money": ["real_money"],
+    "other": ["other"],
+}
+
+DIABLO_FILTER_TO_TAGS: dict[str, list[str]] = {
+    "platinum": ["platinum"],
+    "editions": ["edition"],
+    "real_money": ["real_money"],
+    "other": ["other"],
+}
+
+GENERIC_FILTER_TO_TAGS: dict[str, list[str]] = {
+    "real_money": ["real_money"],
+    "other": ["other"],
+}
+
+
+def filter_mapping_for_game(game: str) -> dict[str, list[str]]:
+    if game == "Overwatch":
+        return OVERWATCH_FILTER_TO_TAGS
+    if game == "StarCraft II":
+        return STARCRAFT_FILTER_TO_TAGS
+    if game == "Hearthstone":
+        return HEARTHSTONE_FILTER_TO_TAGS
+    if game == "Call of Duty":
+        return CALL_OF_DUTY_FILTER_TO_TAGS
+    if game == "World of Warcraft":
+        return WOW_FILTER_TO_TAGS
+    if "Diablo" in game:
+        return DIABLO_FILTER_TO_TAGS
+    return GENERIC_FILTER_TO_TAGS
 
 
 def parse_catalog_tags(raw_notes: str | None) -> list[str]:
@@ -183,10 +240,12 @@ def detect_catalog_tags(item: dict[str, Any]) -> list[str]:
             tags.append("hero_offer")
         elif re.search(r"\b(hero skin|skin for|weapon skin)\b", ctx):
             tags.append("hero_skin")
-        elif " - " in name and is_overwatch_coin_price(price):
-            tags.append("hero_skin")
         elif is_overwatch_coin_price(price):
-            tags.append(_classify_overwatch_coin_cosmetic(name, price, ctx))
+            amount = parse_coin_amount(price)
+            if " - " in name and amount is not None and amount >= 750:
+                tags.append("hero_skin")
+            else:
+                tags.append(_classify_overwatch_coin_cosmetic(name, price, ctx))
         elif re.search(r"battle pass|edition|upgrade|watchpoint", lower + " " + ctx):
             tags.append("other")
         else:
@@ -216,6 +275,65 @@ def detect_catalog_tags(item: dict[str, Any]) -> list[str]:
             tags.append("other")
         return tags
 
+    if game == "Hearthstone":
+        if is_real_money_price(price):
+            tags.append("real_money")
+        if re.search(r"\bpacks?\b", lower):
+            tags.append("card_pack")
+        else:
+            tags.append("other")
+        return tags
+
+    if game == "Call of Duty":
+        price_lower = (price or "").lower()
+        if is_real_money_price(price):
+            tags.append("real_money")
+        if re.search(r"\bcp\b", f"{lower} {price_lower}") or "cod points" in lower:
+            tags.append("cod_points")
+        elif re.search(r"\b(bundle|edition|pass|collection)\b", lower):
+            tags.append("edition")
+        else:
+            tags.append("other")
+        return tags
+
+    if game == "World of Warcraft":
+        if is_real_money_price(price):
+            tags.append("real_money")
+        if re.search(r"wow token", lower):
+            tags.append("wow_token")
+        elif re.search(r"subscription|game time|\d+\s*month", lower):
+            tags.append("game_time")
+        elif re.search(
+            r"\b(mount|pet|saber|dragon|kitten|pup|ancient|aspects|ragnaros|brightpaw|argi|runesaber)\b",
+            lower,
+        ):
+            tags.append("mount_pet")
+        elif re.search(r"expansion|edition|battle for azeroth|dragonflight|shadowlands|war within", lower):
+            tags.append("edition")
+        else:
+            tags.append("other")
+        return tags
+
+    if "Diablo" in game:
+        if is_real_money_price(price):
+            tags.append("real_money")
+        if re.search(r"\bplatinum\b", lower):
+            tags.append("platinum")
+        elif re.search(r"expansion|edition|upgrade|eternal collection|battle chest|reaper of souls", lower):
+            tags.append("edition")
+        else:
+            tags.append("other")
+        return tags
+
+    if game == "Heroes of the Storm":
+        if is_real_money_price(price):
+            tags.append("real_money")
+        if re.search(r"\b(skin|hero|mount|bundle)\b", lower):
+            tags.append("edition")
+        else:
+            tags.append("other")
+        return tags
+
     if is_real_money_price(price):
         tags.append("real_money")
     if tags:
@@ -239,9 +357,6 @@ def extract_checkout_summary(page_text: str | None) -> str | None:
 
 def apply_auto_catalog_tags(entry: dict[str, Any]) -> dict[str, Any]:
     if not entry.get("valid"):
-        return entry
-    game = (entry.get("game") or "").strip()
-    if game not in ("Overwatch", "StarCraft II"):
         return entry
     if parse_catalog_tags(entry.get("raw_notes")):
         return entry
@@ -300,7 +415,7 @@ def item_matches_filter_category(item: dict[str, Any], category: str) -> bool:
         return True
     tags = resolve_catalog_tags(item)
     game = item.get("game") or ""
-    mapping = OVERWATCH_FILTER_TO_TAGS if game == "Overwatch" else STARCRAFT_FILTER_TO_TAGS
+    mapping = filter_mapping_for_game(game)
     wanted = mapping.get(category, [category])
     return any(tag in tags for tag in wanted)
 
@@ -326,6 +441,37 @@ def get_product_includes(name: str, game: str | None, tags: list[str] | None = N
             if coins
             else "Includes Overwatch Coins for the in-game shop."
         )
+
+    if "card_pack" in tag_set:
+        return f"Includes {n} for your Hearthstone account."
+
+    if "cod_points" in tag_set:
+        return f"Includes {n} for Call of Duty in-game purchases."
+
+    if "platinum" in tag_set:
+        amt = re.match(r"^([\d,]+)", n)
+        return (
+            f"Includes {amt.group(1)} Platinum for Diablo in-game purchases."
+            if amt
+            else "Includes Platinum for Diablo in-game purchases."
+        )
+
+    if "game_time" in tag_set:
+        months = re.search(r"(\d+)\s*month", lower)
+        return (
+            f"Includes {months.group(1)} month{'s' if months.group(1) != '1' else ''} of World of Warcraft game time."
+            if months
+            else "Includes World of Warcraft subscription game time."
+        )
+
+    if "wow_token" in tag_set:
+        return "Includes one WoW Token — redeem for 30 days of game time or sell on the Auction House."
+
+    if "mount_pet" in tag_set:
+        return f"Includes the {n} mount or pet for World of Warcraft."
+
+    if "edition" in tag_set:
+        return f"Includes the {n} for your Battle.net account."
 
     if "commander" in tag_set or (re.search(r"\bcommander\b", lower) and "StarCraft" in g):
         cmd = re.search(r"Commander:?\s*(.+)$", n, re.I)
