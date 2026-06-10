@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="static/logo.png" type="image/png">
+  <title>Tags — Code Library</title>
+  <link rel="stylesheet" href="static/style.css?v=24">
+  <script src="static/init.js?v=24"></script>
+</head>
+<body class="scanner-body tags-body">
+  <header class="scanner-header">
+    <div class="header-brand">
+      <img src="static/logo.png" alt="" class="site-logo" width="34" height="34">
+      <div class="header-brand-text">
+        <span class="header-brand-name">Code Library</span>
+        <span class="header-brand-sub">Tag products</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <nav class="header-nav">
+        <a href="." class="nav-link scanner-nav-browse">Browse</a>
+        <a href="./scanner" class="nav-link scanner-nav-scanner">Scanner</a>
+        <a href="./tags" class="nav-link nav-link-active scanner-nav-tags">Tags</a>
+      </nav>
+      <div class="header-controls" data-btn-style-toggle></div>
+    </div>
+  </header>
+
+  <main class="tags-main">
+    <section class="tags-panel">
+      <div class="tags-stats-bar">
+        <div class="tags-stat">
+          <span class="tags-stat-label">Left to tag</span>
+          <span id="tagQueueRemaining" class="tags-stat-value">—</span>
+        </div>
+        <div class="tags-stat">
+          <span class="tags-stat-label">Tagged this session</span>
+          <span id="tagSessionDone" class="tags-stat-value">0</span>
+        </div>
+        <div class="tags-stat">
+          <span class="tags-stat-label">Current</span>
+          <span id="tagCurrentInfo" class="tags-stat-value">Loading…</span>
+        </div>
+      </div>
+
+      <div class="tags-toolbar">
+        <label>
+          Game filter
+          <select id="tagModeGame">
+            <option value="">All Overwatch &amp; StarCraft II</option>
+            <option value="Overwatch">Overwatch only</option>
+            <option value="StarCraft II">StarCraft II only</option>
+          </select>
+        </label>
+        <button id="tagReloadBtn" class="secondary" type="button">Reload queue</button>
+      </div>
+
+      <div id="tagError" class="tags-error hidden"></div>
+
+      <div id="tagModeCard" class="tag-mode-card">
+        <div class="empty-state">Loading queue…</div>
+      </div>
+
+      <div id="tagModeChips" class="tag-mode-chips"></div>
+      <p class="tag-mode-hint">Tap tags to toggle. Auto-detect is pre-selected — adjust if wrong, then save.</p>
+
+      <div class="tag-mode-actions">
+        <button type="button" id="tagModeSkipBtn" class="secondary">Skip</button>
+        <button type="button" id="tagModeSaveBtn">Save &amp; next</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="static/tags.js?v=1"></script>
+</body>
+</html>

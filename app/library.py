@@ -8,6 +8,17 @@ from pathlib import Path
 from threading import Lock
 from typing import Any
 
+from app.catalog_tags import (
+    apply_auto_catalog_tags,
+    get_product_includes,
+    needs_tag_review,
+    parse_catalog_tags,
+    preserve_catalog_tags,
+    resolve_catalog_tags,
+    tag_labels,
+    tag_options_for_game,
+    write_catalog_tags,
+)
 from app.games import detect_game
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -265,6 +276,9 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE products ADD COLUMN message TEXT")
     if "game" not in columns:
         conn.execute("ALTER TABLE products ADD COLUMN game TEXT")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_products_valid_game ON products(valid, game) WHERE valid = 1"
+    )
 
 
 def _normalize_price(price: str | None) -> str | None:
@@ -356,6 +370,19 @@ def _normalize_row(row: sqlite3.Row) -> dict[str, Any]:
         from_name = detect_game(data.get("name"), "", genre=genre)
         if from_name:
             data["game"] = from_name
+    if data.get("valid"):
+        tags = resolve_catalog_tags(data)
+        data["catalog_tags"] = tags
+        data["catalog_tag_labels"] = tag_labels(tags)
+        data["includes"] = get_product_includes(
+            data.get("name") or "",
+            data.get("game"),
+            tags,
+        )
+    else:
+        data["catalog_tags"] = []
+        data["catalog_tag_labels"] = []
+        data["includes"] = None
     return data
 
 
@@ -375,6 +402,10 @@ def _merge_existing_fields(existing: dict[str, Any], merged: dict[str, Any]) -> 
     for field in _MERGE_FIELDS:
         if not _has_value(out.get(field)) and _has_value(existing.get(field)):
             out[field] = existing[field]
+    if _has_value(out.get("raw_notes")) and _has_value(existing.get("raw_notes")):
+        out["raw_notes"] = preserve_catalog_tags(existing.get("raw_notes"), out.get("raw_notes"))
+    elif not _has_value(out.get("raw_notes")) and _has_value(existing.get("raw_notes")):
+        out["raw_notes"] = existing.get("raw_notes")
     if existing.get("valid") and out.get("valid"):
         if _has_value(existing.get("name")) and _has_value(existing.get("price")):
             out["status"] = existing.get("status") or "valid"
@@ -437,6 +468,7 @@ def upsert_product(entry: dict[str, Any], *, force: bool = False, merge_missing:
     merged = apply_already_owned_notes(merged)
     merged = apply_not_eligible_notes(merged)
     merged = _apply_scan_failure_tracking(existing, merged)
+    merged = apply_auto_catalog_tags(merged)
     now = datetime.now(timezone.utc).isoformat()
     conn.execute(
         """
@@ -645,6 +677,96 @@ def get_product(code: int) -> dict[str, Any] | None:
     row = conn.execute("SELECT * FROM products WHERE code = ?", (code,)).fetchone()
     conn.close()
     return _normalize_row(row) if row else None
+
+
+def set_catalog_tags(code: int, tags: list[str]) -> dict[str, Any] | None:
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM products WHERE code = ?", (code,)).fetchone()
+    if not row:
+        conn.close()
+        return None
+    data = dict(row)
+    data["raw_notes"] = write_catalog_tags(data.get("raw_notes"), tags)
+    conn.execute(
+        "UPDATE products SET raw_notes = ? WHERE code = ?",
+        (data["raw_notes"], code),
+    )
+    conn.commit()
+    conn.close()
+    invalidate_stats_cache()
+    invalidate_tag_queue_cache()
+    return _normalize_row(data)
+
+
+_tag_queue_count_cache: dict[str, tuple[int, float]] = {}
+TAG_QUEUE_COUNT_TTL = 30.0
+
+
+def invalidate_tag_queue_cache() -> None:
+    _tag_queue_count_cache.clear()
+
+
+def count_tag_queue(*, game: str = "", use_cache: bool = True) -> int:
+    return len(_tag_queue_rows(game=game))
+
+
+def _tag_queue_rows(*, game: str = "") -> list[dict[str, Any]]:
+    conn = get_connection()
+    clauses = ["valid = 1", "game IN ('Overwatch', 'StarCraft II')"]
+    params: list[Any] = []
+    if game:
+        clauses.append("game = ?")
+        params.append(game)
+    query = f"""
+        SELECT * FROM products
+        WHERE {' AND '.join(clauses)}
+        ORDER BY code ASC
+    """
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    return [_normalize_row(row) for row in rows if needs_tag_review(dict(row))]
+
+
+def get_tag_queue_codes(
+    *,
+    game: str = "",
+    limit: int = 50,
+    offset: int = 0,
+) -> list[dict[str, Any]]:
+    rows = _tag_queue_rows(game=game)
+    start = max(0, offset)
+    end = start + max(1, limit)
+    return rows[start:end]
+
+
+def backfill_auto_catalog_tags(*, game: str = "") -> int:
+    conn = get_connection()
+    clauses = ["valid = 1", "game IN ('Overwatch', 'StarCraft II')"]
+    params: list[Any] = []
+    if game:
+        clauses.append("game = ?")
+        params.append(game)
+    clauses.append("(raw_notes IS NULL OR raw_notes NOT LIKE '%catalog_tags:%')")
+    rows = conn.execute(
+        f"SELECT * FROM products WHERE {' AND '.join(clauses)} ORDER BY code ASC",
+        params,
+    ).fetchall()
+    updated = 0
+    for row in rows:
+        data = dict(row)
+        tagged = apply_auto_catalog_tags(data)
+        new_notes = tagged.get("raw_notes")
+        if new_notes and new_notes != data.get("raw_notes"):
+            conn.execute(
+                "UPDATE products SET raw_notes = ? WHERE code = ?",
+                (new_notes, data["code"]),
+            )
+            updated += 1
+    conn.commit()
+    conn.close()
+    invalidate_stats_cache()
+    invalidate_tag_queue_cache()
+    return updated
 
 
 def explain_product(row: dict[str, Any], *, log_entries: list[dict[str, Any]] | None = None) -> dict[str, Any]:
@@ -1716,6 +1838,7 @@ def build_catalog_payload() -> dict[str, Any]:
 
 
 def publish_catalog_snapshots(extra_paths: list[Path] | None = None) -> list[tuple[Path, int]]:
+    backfill_auto_catalog_tags()
     payload = build_catalog_payload()
     text = json.dumps(payload, indent=2)
     count = int(payload["valid_count"])

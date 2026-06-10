@@ -3,19 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scanner — Battle.net Code Library</title>
+  <link rel="icon" href="static/logo.png" type="image/png">
+  <title>Scanner — Code Library</title>
   <link rel="stylesheet" href="static/style.css?v=24">
   <script src="static/init.js?v=24"></script>
 </head>
 <body class="scanner-body">
   <header class="scanner-header">
-    <div>
-      <h1>Battle.net Code Library</h1>
-      <div class="subtitle">Scan checkout codes and build your catalog</div>
+    <div class="header-brand">
+      <img src="static/logo.png" alt="" class="site-logo" width="34" height="34">
+      <div class="header-brand-text">
+        <span class="header-brand-name">Code Library</span>
+        <span class="header-brand-sub">Battle.net</span>
+      </div>
     </div>
     <div class="header-right">
-      <a href="." class="nav-link scanner-nav-browse">Browse</a>
-      <a href="./scanner" class="nav-link nav-link-active scanner-nav-scanner">Scanner</a>
+      <nav class="header-nav">
+        <a href="." class="nav-link scanner-nav-browse">Browse</a>
+        <a href="./scanner" class="nav-link nav-link-active scanner-nav-scanner">Scanner</a>
+        <a href="./tags" class="nav-link scanner-nav-tags">Tags</a>
+      </nav>
       <div class="header-stats">
         <div class="header-stat">
           <span class="header-stat-label">Rate</span>
@@ -38,6 +45,7 @@
           <span id="currentScanInfo" class="header-stat-value idle">Idle</span>
         </div>
       </div>
+      <div class="header-controls" data-btn-style-toggle></div>
       <div class="status-pill">
         <span id="statusDot" class="status-dot"></span>
         <span id="statusText">Loading...</span>

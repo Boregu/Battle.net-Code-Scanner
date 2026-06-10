@@ -48,6 +48,9 @@ from app.library import (
     reset_throttle_for_retry,
     get_fix_queue_codes,
     get_incomplete_valid_codes,
+    get_tag_queue_codes,
+    count_tag_queue,
+    set_catalog_tags,
     get_scanned_codes_in_range,
     get_skip_codes_in_range,
     get_smart_skip_codes_in_range,
@@ -64,6 +67,7 @@ from app.library import (
 )
 from app.scanner import BattleNetScanner, ScanResult, SCANNER_VERSION, ScanStatus
 from app import scan_debug
+from app.catalog_tags import tag_options_for_game
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC_DIR = ROOT / "static"
@@ -230,6 +234,10 @@ class DatabaseRestoreRequest(BaseModel):
     restore_settings: bool = True
 
 
+class CatalogTagsUpdate(BaseModel):
+    tags: list[str] = Field(default_factory=list)
+
+
 def _scanner_busy() -> bool:
     return scanner.status in (ScanStatus.RUNNING, ScanStatus.PAUSED)
 
@@ -373,6 +381,31 @@ async def scanner_page() -> Response:
         html,
     )
     return Response(content=html, media_type="text/html", headers=NO_CACHE_HEADERS)
+
+
+@app.get("/tags")
+async def tags_page() -> Response:
+    html = (STATIC_DIR / "tags.html").read_text(encoding="utf-8")
+    html = re.sub(
+        r'(static/tags\.js\?v=)[^"\']+',
+        rf"\g<1>{SCANNER_VERSION}",
+        html,
+    )
+    html = re.sub(
+        r'(static/style\.css\?v=)[^"\']+',
+        rf"\g<1>{SCANNER_VERSION}",
+        html,
+    )
+    return Response(content=html, media_type="text/html", headers=NO_CACHE_HEADERS)
+
+
+@app.get("/static/tags.js")
+async def tags_js() -> FileResponse:
+    return FileResponse(
+        STATIC_DIR / "tags.js",
+        media_type="application/javascript",
+        headers=NO_CACHE_HEADERS,
+    )
 
 
 @app.get("/static/app.js")
@@ -604,6 +637,31 @@ async def api_library_count(
     return {"count": count}
 
 
+@app.get("/api/library/tag-queue")
+async def api_tag_queue(
+    game: str = "",
+    limit: int = 50,
+    offset: int = 0,
+) -> dict[str, Any]:
+    safe_limit = min(max(limit, 1), 200)
+    safe_offset = max(0, offset)
+
+    def _load() -> dict[str, Any]:
+        items = get_tag_queue_codes(game=game, limit=safe_limit, offset=safe_offset)
+        return {
+            "items": items,
+            "total": count_tag_queue(game=game),
+            "limit": safe_limit,
+            "offset": safe_offset,
+            "tag_options": {
+                "Overwatch": tag_options_for_game("Overwatch"),
+                "StarCraft II": tag_options_for_game("StarCraft II"),
+            },
+        }
+
+    return await asyncio.to_thread(_load)
+
+
 @app.get("/api/library")
 async def api_library(
     valid_only: bool = False,
@@ -670,6 +728,16 @@ async def api_library_item_debug(code: int) -> dict[str, Any]:
         return {"error": "not_found"}
     logs = scan_debug.entries_for_code(code)
     return explain_product(item, log_entries=logs)
+
+
+@app.put("/api/library/{code}/catalog-tags")
+async def api_set_catalog_tags(code: int, body: CatalogTagsUpdate) -> dict[str, Any]:
+    item = await asyncio.to_thread(set_catalog_tags, code, body.tags)
+    if not item:
+        return {"ok": False, "error": "not_found"}
+    _track_background(schedule_bore_rip_catalog_export())
+    await broadcast("library_updated", {"code": code, "catalog_tags": item.get("catalog_tags")})
+    return {"ok": True, "item": item}
 
 
 @app.delete("/api/library/{code}")

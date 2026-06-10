@@ -29,6 +29,7 @@ from app.library import (
     get_product,
 )
 from app.games import detect_game
+from app.catalog_tags import extract_checkout_summary
 from app import scan_debug
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -555,7 +556,7 @@ def _validate_extract_script_js() -> str:
     )
 
 
-SCANNER_VERSION = "2026-06-04.10"
+SCANNER_VERSION = "2026-06-04.12"
 
 MAX_SCAN_RETRIES = 4
 GENTLE_SCAN_RETRIES = 4
@@ -2084,6 +2085,9 @@ class BattleNetScanner:
                     requirements_text = extracted.get("requirementsText") or ""
                     genre = extracted.get("genre")
                     notes_parts: list[str] = []
+                    summary = extract_checkout_summary(page_text)
+                    if summary:
+                        notes_parts.append(f"Summary: {summary}")
                     if requirements_text:
                         notes_parts.append(requirements_text)
                     if genre:
@@ -2492,6 +2496,9 @@ class BattleNetScanner:
             requirements_text = extracted.get("requirementsText") or ""
             genre = extracted.get("genre")
             notes_parts: list[str] = []
+            summary = extract_checkout_summary(page_text)
+            if summary:
+                notes_parts.append(f"Summary: {summary}")
             if requirements_text:
                 notes_parts.append(requirements_text)
             if genre:

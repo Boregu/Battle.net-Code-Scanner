@@ -1,6 +1,50 @@
 (function () {
   const MOUNT_PREFIXES = ["/battlenetcodes"];
   const PAGE_FADE_MS = 450;
+  const BTN_STYLE_KEY = "bore-btn-style";
+
+  function readBtnStyle() {
+    try {
+      return localStorage.getItem(BTN_STYLE_KEY) === "square" ? "square" : "pill";
+    } catch {
+      return "pill";
+    }
+  }
+
+  function applyBtnStyle(style) {
+    document.documentElement.dataset.btnStyle = style;
+  }
+
+  applyBtnStyle(readBtnStyle());
+
+  function mountBtnStyleToggle(container) {
+    if (!container || container.dataset.mounted) return;
+    container.dataset.mounted = "1";
+    const current = readBtnStyle();
+    container.innerHTML =
+      '<div class="btn-style-toggle" role="group" aria-label="Button shape">' +
+      `<button type="button" class="btn-style-option${current === "pill" ? " is-active" : ""}" data-shape="pill" title="Rounded buttons">Round</button>` +
+      `<button type="button" class="btn-style-option${current === "square" ? " is-active" : ""}" data-shape="square" title="Square buttons">Square</button>` +
+      "</div>";
+    container.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-shape]");
+      if (!btn) return;
+      const shape = btn.dataset.shape;
+      applyBtnStyle(shape);
+      try {
+        localStorage.setItem(BTN_STYLE_KEY, shape);
+      } catch {
+        /* ignore */
+      }
+      container.querySelectorAll(".btn-style-option").forEach((el) => {
+        el.classList.toggle("is-active", el.dataset.shape === shape);
+      });
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("[data-btn-style-toggle]").forEach(mountBtnStyleToggle);
+  });
 
   let baseHref = "/";
   for (const prefix of MOUNT_PREFIXES) {
